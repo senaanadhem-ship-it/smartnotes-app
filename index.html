@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f6f7f2">
+    <title>SmartNotes</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --paper: #f6f7f2;
+            --surface: #fff;
+            --ink: #202b28;
+            --muted: #77817c;
+            --line: #e2e7e0;
+            --green: #315f4b;
+            --green-dark: #244b39;
+            --mint: #e5efe7;
+            --coral: #bd5e49;
+            --shadow: 0 12px 36px rgb(31 52 42 / 7%);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            min-width: 320px;
+            min-height: 100vh;
+            margin: 0;
+            color: var(--ink);
+            background-color: var(--paper);
+            background-image: radial-gradient(#dfe6dc 0.7px, transparent 0.7px);
+            background-size: 18px 18px;
+            font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+        }
+
+        button, input, textarea { font: inherit; }
+        button { cursor: pointer; }
+
+        .page {
+            width: min(1160px, calc(100% - 48px));
+            margin: 0 auto;
+            padding: 36px 0 64px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid #dfe5dc;
+        }
+
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .brand-mark {
+            display: grid;
+            width: 42px;
+            height: 42px;
+            place-items: center;
+            border-radius: 13px;
+            color: white;
+            background: var(--green);
+            font-family: Georgia, serif;
+            font-size: 24px;
+            line-height: 1;
+        }
+        .brand-name {
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 23px;
+            font-weight: 600;
+        }
+        .local-label {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .intro { padding: 34px 0 27px; }
+        .eyebrow {
+            margin: 0 0 9px;
+            color: var(--green);
+            font-size: 11px;
+            font-weight: 750;
+            letter-spacing: 1.3px;
+            text-transform: uppercase;
+        }
+        .intro h1 {
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(32px, 5vw, 48px);
+            font-weight: 500;
+            line-height: 1.1;
+        }
+        .intro p:last-child {
+            margin: 11px 0 0;
+            color: var(--muted);
+            font-size: 15px;
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: minmax(280px, 0.82fr) minmax(0, 1.5fr);
+            align-items: start;
+            gap: 32px;
+        }
+
+        .compose {
+            position: sticky;
+            top: 24px;
+            padding: 22px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--surface);
+            box-shadow: var(--shadow);
+        }
+        .compose-heading, .list-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .compose h2, .list-heading h2 {
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 21px;
+            font-weight: 500;
+        }
+        .form-field { margin-top: 20px; }
+        .form-field label {
+            display: block;
+            margin-bottom: 8px;
+            color: #59655f;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .form-field input, .form-field textarea, .search-box input {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 5px;
+            outline: none;
+            color: var(--ink);
+            background: #fcfdfa;
+            transition: border-color 140ms ease, box-shadow 140ms ease;
+        }
+        .form-field input, .form-field textarea { padding: 12px 13px; }
+        .form-field textarea { min-height: 190px; resize: vertical; line-height: 1.55; }
+        .form-field input:focus, .form-field textarea:focus, .search-box input:focus {
+            border-color: #79a38a;
+            box-shadow: 0 0 0 3px rgb(87 137 105 / 13%);
+        }
+        .form-field input::placeholder, .form-field textarea::placeholder, .search-box input::placeholder { color: #a0aaa3; }
+        .form-actions { display: flex; gap: 9px; margin-top: 18px; }
+        .primary-button, .quiet-button {
+            min-height: 42px;
+            padding: 0 15px;
+            border: 0;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .primary-button { flex: 1; color: white; background: var(--green); }
+        .primary-button:hover { background: var(--green-dark); }
+        .quiet-button { color: #55625b; background: #edf1ec; }
+        .quiet-button:hover { background: #e2e9e2; }
+
+        .notes-section { min-width: 0; }
+        .list-heading { min-height: 45px; margin-bottom: 14px; }
+        .note-count {
+            color: var(--muted);
+            font-size: 12px;
+            font-variant-numeric: tabular-nums;
+        }
+        .search-box { position: relative; margin-bottom: 16px; }
+        .search-box input { height: 43px; padding: 0 13px 0 40px; background: var(--surface); }
+        .search-icon {
+            position: absolute;
+            top: 50%;
+            left: 14px;
+            width: 13px;
+            height: 13px;
+            border: 1.5px solid #849088;
+            border-radius: 50%;
+            transform: translateY(-60%);
+            pointer-events: none;
+        }
+        .search-icon::after {
+            position: absolute;
+            right: -5px;
+            bottom: -3px;
+            width: 6px;
+            height: 1.5px;
+            background: #849088;
+            content: "";
+            transform: rotate(45deg);
+        }
+        .notes-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        .note {
+            display: flex;
+            min-height: 174px;
+            flex-direction: column;
+            padding: 17px 17px 14px;
+            border: 1px solid var(--line);
+            border-radius: 7px;
+            background: var(--surface);
+            box-shadow: 0 4px 14px rgb(31 52 42 / 3%);
+            animation: arrive 240ms ease both;
+        }
+        .note h3 {
+            overflow-wrap: anywhere;
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 18px;
+            font-weight: 500;
+            line-height: 1.3;
+        }
+        .note p {
+            display: -webkit-box;
+            overflow: hidden;
+            margin: 9px 0 16px;
+            color: #65716a;
+            font-size: 13px;
+            line-height: 1.55;
+            overflow-wrap: anywhere;
+            white-space: pre-wrap;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 4;
+        }
+        .note-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-top: auto;
+            padding-top: 10px;
+            border-top: 1px solid #edf0eb;
+        }
+        .note-date { color: #929b95; font-size: 11px; }
+        .note-actions { display: flex; gap: 4px; }
+        .note-actions button {
+            min-height: 29px;
+            padding: 0 8px;
+            border: 0;
+            border-radius: 4px;
+            color: #53645a;
+            background: transparent;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .note-actions button:hover { background: var(--mint); }
+        .note-actions .delete-button { color: var(--coral); }
+        .note-actions .delete-button:hover { background: #f8ece8; }
+        .empty-state {
+            grid-column: 1 / -1;
+            padding: 48px 20px;
+            border: 1px dashed #cbd5cb;
+            border-radius: 7px;
+            color: var(--muted);
+            text-align: center;
+        }
+        .empty-state strong { display: block; margin-bottom: 6px; color: var(--ink); font-family: Georgia, serif; font-size: 19px; font-weight: 500; }
+        .empty-state p { margin: 0; font-size: 13px; }
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        @keyframes arrive { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 760px) {
+            .page { width: min(100% - 32px, 620px); padding-top: 22px; }
+            .workspace { grid-template-columns: 1fr; gap: 30px; }
+            .compose { position: static; }
+            .form-field textarea { min-height: 130px; }
+        }
+        @media (max-width: 460px) {
+            .page { width: calc(100% - 24px); }
+            .local-label { max-width: 110px; text-align: right; }
+            .notes-list { grid-template-columns: 1fr; }
+            .note { min-height: 150px; }
+            .compose { padding: 18px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <header class="topbar">
+            <div class="brand">
+                <span class="brand-mark" aria-hidden="true">S</span>
+                <p class="brand-name">SmartNotes</p>
+            </div>
+            <span class="local-label">Your notes stay on this device</span>
+        </header>
+
+        <section class="intro" aria-labelledby="page-title">
+            <p class="eyebrow">A little room to think</p>
+            <h1 id="page-title">Ideas, gathered.</h1>
+            <p>Keep the thoughts worth coming back to.</p>
+        </section>
+
+        <div class="workspace">
+            <form class="compose" id="note-form">
+                <div class="compose-heading">
+                    <h2 id="form-heading">Write a note</h2>
+                </div>
+                <div class="form-field">
+                    <label for="title">Title</label>
+                    <input id="title" name="title" type="text" maxlength="120" placeholder="Give this thought a name" required>
+                </div>
+                <div class="form-field">
+                    <label for="content">Your note</label>
+                    <textarea id="content" name="content" placeholder="Start wherever you are..." required></textarea>
+                </div>
+                <div class="form-actions">
+                    <button class="primary-button" id="save-button" type="submit">Save note</button>
+                    <button class="quiet-button" id="cancel-button" type="button" hidden>Cancel</button>
+                </div>
+            </form>
+
+            <section class="notes-section" aria-labelledby="notes-heading">
+                <div class="list-heading">
+                    <h2 id="notes-heading">Your notes</h2>
+                    <span class="note-count" id="note-count" aria-live="polite"></span>
+                </div>
+                <label class="search-box">
+                    <span class="sr-only">Search notes</span>
+                    <span class="search-icon" aria-hidden="true"></span>
+                    <input id="search" type="search" placeholder="Search your notes..." autocomplete="off">
+                </label>
+                <div class="notes-list" id="notes" aria-live="polite"></div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        const storageKey = "notes";
+        const form = document.getElementById("note-form");
+        const titleInput = document.getElementById("title");
+        const contentInput = document.getElementById("content");
+        const searchInput = document.getElementById("search");
+        const notesArea = document.getElementById("notes");
+        const countLabel = document.getElementById("note-count");
+        const saveButton = document.getElementById("save-button");
+        const cancelButton = document.getElementById("cancel-button");
+        const formHeading = document.getElementById("form-heading");
+        let editingId = null;
+        let notes = loadNotes();
+
+        function loadNotes() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(storageKey) || "[]");
+                if (!Array.isArray(saved)) return [];
+                return saved
+                    .filter(note => note && note.id !== undefined && typeof note.title === "string" && typeof note.content === "string")
+                    .map(note => {
+                        const timestamp = Number(note.updatedAt || note.createdAt) || Date.now();
+                        return { ...note, id: String(note.id), createdAt: Number(note.createdAt) || timestamp, updatedAt: timestamp };
+                    });
+            } catch {
+                return [];
+            }
+        }
+
+        function persistNotes() {
+            try {
+                localStorage.setItem(storageKey, JSON.stringify(notes));
+                return true;
+            } catch {
+                window.alert("Your browser could not save this note. Check that local storage is available.");
+                return false;
+            }
+        }
+
+        function resetForm() {
+            editingId = null;
+            form.reset();
+            formHeading.textContent = "Write a note";
+            saveButton.textContent = "Save note";
+            cancelButton.hidden = true;
+        }
+
+        function formatDate(timestamp) {
+            const date = new Date(timestamp);
+            if (Number.isNaN(date.getTime())) return "Saved note";
+            return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(date);
+        }
+
+        function renderNotes() {
+            const query = searchInput.value.trim().toLocaleLowerCase();
+            const matchingNotes = notes
+                .filter(note => `${note.title} ${note.content}`.toLocaleLowerCase().includes(query))
+                .sort((first, second) => second.updatedAt - first.updatedAt);
+
+            countLabel.textContent = `${notes.length} ${notes.length === 1 ? "note" : "notes"}`;
+            notesArea.replaceChildren();
+
+            if (!matchingNotes.length) {
+                const empty = document.createElement("div");
+                empty.className = "empty-state";
+                const heading = document.createElement("strong");
+                const message = document.createElement("p");
+                heading.textContent = query ? "No notes found" : "A fresh page";
+                message.textContent = query ? "Try another search term." : "Your saved notes will find a home here.";
+                empty.append(heading, message);
+                notesArea.append(empty);
+                return;
+            }
+
+            matchingNotes.forEach(note => {
+                const card = document.createElement("article");
+                card.className = "note";
+                const heading = document.createElement("h3");
+                heading.textContent = note.title;
+                const text = document.createElement("p");
+                text.textContent = note.content;
+                const footer = document.createElement("div");
+                footer.className = "note-footer";
+                const date = document.createElement("time");
+                date.className = "note-date";
+                date.dateTime = new Date(note.updatedAt).toISOString();
+                date.textContent = formatDate(note.updatedAt);
+                const actions = document.createElement("div");
+                actions.className = "note-actions";
+                const editButton = document.createElement("button");
+                editButton.type = "button";
+                editButton.textContent = "Edit";
+                editButton.setAttribute("aria-label", `Edit ${note.title}`);
+                editButton.addEventListener("click", () => editNote(note));
+                const deleteButton = document.createElement("button");
+                deleteButton.type = "button";
+                deleteButton.className = "delete-button";
+                deleteButton.textContent = "Delete";
+                deleteButton.setAttribute("aria-label", `Delete ${note.title}`);
+                deleteButton.addEventListener("click", () => deleteNote(note.id));
+                actions.append(editButton, deleteButton);
+                footer.append(date, actions);
+                card.append(heading, text, footer);
+                notesArea.append(card);
+            });
+        }
+
+        function editNote(note) {
+            editingId = note.id;
+            titleInput.value = note.title;
+            contentInput.value = note.content;
+            formHeading.textContent = "Edit note";
+            saveButton.textContent = "Save changes";
+            cancelButton.hidden = false;
+            titleInput.focus();
+            form.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+
+        function deleteNote(id) {
+            notes = notes.filter(note => note.id !== id);
+            if (!persistNotes()) {
+                notes = loadNotes();
+                return;
+            }
+            if (editingId === id) resetForm();
+            renderNotes();
+        }
+
+        form.addEventListener("submit", event => {
+            event.preventDefault();
+            const title = titleInput.value.trim();
+            const content = contentInput.value.trim();
+            if (!title || !content) return;
+
+            const timestamp = Date.now();
+            if (editingId) {
+                notes = notes.map(note => note.id === editingId ? { ...note, title, content, updatedAt: timestamp } : note);
+            } else {
+                notes.push({ id: globalThis.crypto?.randomUUID?.() || `${timestamp}-${Math.random()}`, title, content, createdAt: timestamp, updatedAt: timestamp });
+            }
+
+            if (!persistNotes()) {
+                notes = loadNotes();
+                return;
+            }
+            resetForm();
+            renderNotes();
+        });
+
+        cancelButton.addEventListener("click", resetForm);
+        searchInput.addEventListener("input", renderNotes);
+        renderNotes();
+    </script>
+</body>
+</html>
